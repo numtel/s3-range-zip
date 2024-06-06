@@ -1,0 +1,21 @@
+{
+  "name": "s3-range-zip",
+  "version": "1.0.0",
+  "description": "Load individual files from zip files on S3 using range",
+  "main": "index.js",
+  "type": "module",
+  "repository": "https://github.com/numtel/s3-range-zip",
+  "author": "numtel <ben@latenightsketches.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.591.0",
+    "jszip": "^3.10.1",
+    "pako": "^2.1.0"
+  },
+  "devDependencies": {
+    "mocha": "^10.4.0"
+  }
+}
