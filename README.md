@@ -39,7 +39,12 @@ Returns the list of files in the zip.
 * `bucketName` `<string>` S3 Bucket name
 * `key` `<string>` S3 Item key
 * `fileName` `<string>` Name of file inside the zip to download and decompress
-* `options` `<object>` Optionally, use `{ encoding: 'utf8' }` for string output
+* `options` `<object>` Optional
+
+Option Name | Type | Description
+-----------|-------|----------------
+`encoding` | string | `utf8` to return string instead of default `Uint8Array`
+`onProgress(receivedBytes, totalBytes)` | function | receive updates during download
 
 Returns the decompressed file contents as Uint8Array or string.
 

@@ -130,10 +130,30 @@ export default class S3RangeZip {
       Range: `bytes=${fileRangeStart}-${fileRangeEnd - 1}`
     };
     const data = await this.s3.send(new GetObjectCommand(params));
-    const fileData = await data.Body.transformToByteArray();
+    const reader = data.Body.getReader();
+    const contentLength = parseInt(data.ContentLength, 10);
+    let receivedLength = 0;
+    const chunks = [];
 
-    const localFileHeader = this.parseLocalFileHeader(fileData);
-    const compressedData = fileData.slice(localFileHeaderSize, fileData.length);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      chunks.push(value);
+      receivedLength += value.length;
+      options && options.onProgress && options.onProgress(receivedLength, contentLength);
+    }
+
+    const chunksAll = new Uint8Array(receivedLength);
+    let position = 0;
+    for (let chunk of chunks) {
+      chunksAll.set(chunk, position);
+      position += chunk.length;
+    }
+
+    const localFileHeader = this.parseLocalFileHeader(chunksAll);
+    const compressedData = chunksAll.slice(localFileHeaderSize, chunksAll.length);
 
     let decompressedData;
     if (localFileHeader.compressionMethod === 8) { // Deflate compression

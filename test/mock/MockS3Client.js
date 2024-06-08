@@ -1,7 +1,8 @@
 import {readFileSync} from 'node:fs';
 
 export default class MockS3Client {
-  constructor() {
+  constructor(chunkCount) {
+    this.chunkCount = chunkCount;
     this.data = {
       "example-bucket": {
         "test.zip": readFileSync('test/test.zip'),
@@ -46,6 +47,7 @@ export default class MockS3Client {
         Body: {
           transformToString: async () => content.toString('utf8'),
           transformToByteArray: async () => new Uint8Array(content),
+          getReader: () => new MockReader(content, this.chunkCount),
         },
         ContentLength: content.length,
         ContentRange: Range ? `bytes ${Range}/${this.data[Bucket][Key].length}` : undefined,
@@ -53,5 +55,29 @@ export default class MockS3Client {
     }
 
     return Promise.reject(new Error("Unsupported command"));
+  }
+}
+
+class MockReader {
+  constructor(content, chunkCount) {
+    this.content = content;
+    this.done = false;
+    this.chunkCount = chunkCount;
+    this.chunkSize = Math.ceil(content.length / chunkCount);
+    this.currentChunk = 0;
+  }
+
+  read() {
+    if (this.currentChunk >= this.chunkCount) {
+      return Promise.resolve({ done: true, value: null });
+    }
+
+    const start = this.currentChunk * this.chunkSize;
+    const end = Math.min(start + this.chunkSize, this.content.length);
+    const chunk = this.content.subarray(start, end);
+
+    this.currentChunk += 1;
+
+    return Promise.resolve({ done: false, value: chunk });
   }
 }

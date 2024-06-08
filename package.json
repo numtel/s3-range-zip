@@ -1,6 +1,6 @@
 {
   "name": "s3-range-zip",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Load individual files from zip files on S3 using range",
   "main": "index.js",
   "type": "module",
