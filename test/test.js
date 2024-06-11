@@ -1,14 +1,15 @@
 import {strictEqual, ok} from 'node:assert';
 
-import MockS3Client from './mock/MockS3Client.js';
+import MockHTTPServer from './mock/MockHTTPServer.js';
 
 import S3RangeZip from '../index.js';
 
 describe('S3RangeZip', () => {
   it('reads a file', async () => {
     const chunkCount = 5;
-    const s3 = new MockS3Client(chunkCount);
-    const reader = new S3RangeZip(s3);
+    const s3 = new MockHTTPServer(chunkCount);
+    const url = await s3.start();
+    const reader = new S3RangeZip((bucketName, key) => `${url}${bucketName}/${key}`);
 
     const bucket = 'example-bucket';
     const key = 'test.zip';
@@ -32,5 +33,8 @@ describe('S3RangeZip', () => {
     strictEqual(receivedCount, chunkCount);
     strictEqual(fileBin.length, fileInfo.uncompressedSize);
     strictEqual(fileStr.length, fileInfo.uncompressedSize);
+    ok(fileStr.startsWith('pragma circom 2.1.5'));
+
+    s3.stop();
   });
 });

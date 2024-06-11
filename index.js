@@ -1,31 +1,39 @@
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import JSZip from 'jszip';
 import pako from 'pako';
 
 export default class S3RangeZip {
-  constructor(s3Client) {
-    this.s3 = s3Client;
+  constructor(s3UrlFun = (bucketName, key) => `https://${bucketName}.s3.amazonaws.com/${key}`) {
+    this.s3UrlFun = s3UrlFun;
     this.fileList = [];
   }
 
   async getLastBytes(bucketName, key, byteCount) {
-    const params = {
-      Bucket: bucketName,
-      Key: key,
-      Range: `bytes=-${byteCount}`
-    };
-    const data = await this.s3.send(new GetObjectCommand(params));
-    return data.Body.transformToByteArray();
+    const response = await fetch(this.s3UrlFun(bucketName, key), {
+      headers: {
+        'Range': `bytes=-${byteCount}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching data: ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
   }
 
   async getCentralDirectory(bucketName, key, offset, size) {
-    const params = {
-      Bucket: bucketName,
-      Key: key,
-      Range: `bytes=${offset}-${offset + size - 1}`
-    };
-    const data = await this.s3.send(new GetObjectCommand(params));
-    return data.Body.transformToByteArray();
+    const response = await fetch(this.s3UrlFun(bucketName, key), {
+      headers: {
+        'Range': `bytes=${offset}-${offset + size - 1}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching data: ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
   }
 
   parseEOCD(buffer) {
@@ -124,14 +132,17 @@ export default class S3RangeZip {
     const fileRangeStart = fileEntry.relativeOffsetOfLocalHeader;
     const fileRangeEnd = fileEntry.relativeOffsetOfLocalHeader + localFileHeaderSize + fileEntry.compressedSize;
 
-    const params = {
-      Bucket: bucketName,
-      Key: key,
-      Range: `bytes=${fileRangeStart}-${fileRangeEnd - 1}`
-    };
-    const data = await this.s3.send(new GetObjectCommand(params));
-    const reader = data.Body.getReader();
-    const contentLength = parseInt(data.ContentLength, 10);
+    const response = await fetch(this.s3UrlFun(bucketName, key), {
+      headers: {
+        'Range': `bytes=${fileRangeStart}-${fileRangeEnd - 1}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching data: ${response.statusText}`);
+    }
+    const contentLength = parseInt(response.headers.get('Content-Length'), 10);
+    const reader = response.body.getReader();
     let receivedLength = 0;
     const chunks = [];
 

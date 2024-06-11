@@ -11,11 +11,7 @@ npm install s3-range-zip
 ## Usage
 
 ```js
-import { S3Client } from '@aws-sdk/client-s3';
-import S3RangeZip from 's3-range-zip';
-
-const s3 = new S3Client();
-const reader = new S3RangeZip(s3);
+const reader = new S3RangeZip();
 
 const fileList = await reader.fetchFileList('bucket', 'key');
 console.log(fileList);
@@ -27,7 +23,12 @@ console.log(file);
 ## class S3RangeZip
 
 ### constructor(s3Client)
-* `s3Client` `<S3Client>` Instance from `@aws-sdk/client-s3`
+* `s3UrlFun` `<function>` Optionally, pass a function to use a custom URL scheme.
+
+  Default:
+  ```js
+  (bucketName, key) => `https://${bucketName}.s3.amazonaws.com/${key}`
+  ```
 
 ### async fetchFileList(bucketName, key)
 * `bucketName` `<string>` S3 Bucket name
