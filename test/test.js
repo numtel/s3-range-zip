@@ -15,7 +15,7 @@ describe('S3RangeZip', () => {
     const fileName = 'packages/circuits/src/semaphore.circom';
 
     const fileList = await reader.fetchFileList(bucket, key);
-    strictEqual(fileList.length, 27);
+    strictEqual(fileList.length, 8);
     const fileInfo = fileList.find(x=>x.fileName === fileName);
 
     const fileBin = await reader.downloadFile(bucket, key, fileName);
