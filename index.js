@@ -21,21 +21,6 @@ export default class S3RangeZip {
     return new Uint8Array(arrayBuffer);
   }
 
-  async getCentralDirectory(bucketName, key, offset, size) {
-    const response = await fetch(this.s3UrlFun(bucketName, key), {
-      headers: {
-        'Range': `bytes=${offset}-${offset + size - 1}`
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error fetching data: ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    return new Uint8Array(arrayBuffer);
-  }
-
   parseEOCD(buffer) {
     const eocd = {};
     eocd.signature = readUint32LE(buffer, 0);
@@ -113,8 +98,8 @@ export default class S3RangeZip {
     const eocdBuffer = await this.getLastBytes(bucketName, key, eocdSize);
     const eocd = this.parseEOCD(eocdBuffer);
 
-    const centralDirectoryBuffer = await this.getCentralDirectory(bucketName, key, eocd.offsetOfStartOfCentralDirectoryWithRespectToTheStartingDiskNumber, eocd.sizeOfTheCentralDirectory);
-    this.fileList = this.parseCentralDirectory(centralDirectoryBuffer);
+    const centralDirectoryBuffer = await this.getLastBytes(bucketName, key, eocd.sizeOfTheCentralDirectory + eocdSize);
+    this.fileList = this.parseCentralDirectory(centralDirectoryBuffer.subarray(0, centralDirectoryBuffer.length - eocdSize));
     return this.fileList;
   }
 
@@ -183,10 +168,10 @@ export default class S3RangeZip {
 }
 
 function readUint32LE(buffer, offset) {
-  return buffer[offset] |
+  return (buffer[offset] |
     (buffer[offset + 1] << 8) |
     (buffer[offset + 2] << 16) |
-    (buffer[offset + 3] << 24);
+    (buffer[offset + 3] << 24)) >>> 0;
 }
 
 function readUint16LE(buffer, offset) {
